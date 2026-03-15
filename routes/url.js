@@ -100,7 +100,7 @@ router.get('/:code', async (req, res) => {
 
     // If password protected → redirect to password page
 if (url.password) {
-  return res.redirect(`http://localhost:3000/protected/${code}`)
+  return res.redirect(`https://cuts.ink/protected/${code}`)
 }
     const userAgent=req.headers['user-agent']||''
     const isMobile=/mobile|android|iphone|ipad/i.test(userAgent)
