@@ -3,7 +3,59 @@ const router = express.Router()
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const User = require('../models/User')
+const { OAuth2Client } = require('google-auth-library')
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
+// ====================================
+// POST /auth/google → Google Sign In
+// ====================================
+router.post('/google', async (req, res) => {
+  const { credential } = req.body
+
+  try {
+    // Verify Google token
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID
+    })
+
+    const payload = ticket.getPayload()
+    const { email, name, sub } = payload
+
+    // Check if user exists
+    let user = await User.findOne({ email })
+
+    if (!user) {
+      // Create new user
+      user = new User({
+        username: name,
+        email,
+        password: sub // use Google ID as password (won't be used)
+      })
+      await user.save()
+    }
+
+    // Create JWT token
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    )
+
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email
+      }
+    })
+
+  } catch (err) {
+    console.log('Google auth error:', err)
+    res.status(401).json({ error: 'Google authentication failed' })
+  }
+})
 router.post('/register', async (req, res) => {
  console.log('Register route hit!')
  
