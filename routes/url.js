@@ -102,7 +102,8 @@ router.get('/:code', async (req, res) => {
     const userAgent = req.headers['user-agent'] || ''
     const isMobile = /mobile|android|iphone|ipad/i.test(userAgent)
 
-    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress
+    const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress
+    const ip = rawIp.split(',')[0].trim().replace(/^::ffff:/, '')
     const geo = geoip.lookup(ip)
     const country = geo?.country || 'Unknown'
 
@@ -145,7 +146,8 @@ router.post('/verify/:code', async (req, res) => {
     const isMobile = /mobile|android|iphone|ipad/i.test(userAgent)
 
     // Detect country
-    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress
+    const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress
+    const ip = rawIp.split(',')[0].trim().replace(/^::ffff:/, '')
     const geo = geoip.lookup(ip)
     const country = geo?.country || 'Unknown'
 
