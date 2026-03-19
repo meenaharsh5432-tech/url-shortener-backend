@@ -60,6 +60,12 @@ router.post('/google', async (req, res) => {
       await user.save()
     }
 
+    // For existing Google users created before isGoogleUser field was added, set it now
+    if (!user.isGoogleUser) {
+      user.isGoogleUser = true
+      await user.save()
+    }
+
     // Create JWT token — works for both existing and new users!
     const token = jwt.sign(
       { userId: user._id },
@@ -73,7 +79,7 @@ router.post('/google', async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
-        isGoogleUser: user.isGoogleUser || false
+        isGoogleUser: true
       }
     })
 
@@ -177,6 +183,16 @@ router.post('/login', async (req, res) => {
         email: user.email
       }
     })
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+router.get('/me', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('-password -verificationToken -resetPasswordToken')
+    if (!user) return res.status(404).json({ error: 'User not found' })
+    res.json({ isGoogleUser: user.isGoogleUser || false })
   } catch (err) {
     res.status(500).json({ error: 'Server error' })
   }
