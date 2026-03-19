@@ -78,12 +78,6 @@ router.post('/google', async (req, res) => {
       sendWelcomeEmail(email, name).catch(err => console.error('Failed to send welcome email:', err))
     }
 
-    // For existing Google users created before isGoogleUser field was added, set it now
-    if (!user.isGoogleUser) {
-      user.isGoogleUser = true
-      await user.save()
-    }
-
     // Create JWT token — works for both existing and new users!
     const token = jwt.sign(
       { userId: user._id },
@@ -97,7 +91,7 @@ router.post('/google', async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
-        isGoogleUser: true
+        isGoogleUser: user.isGoogleUser || false
       }
     })
 
