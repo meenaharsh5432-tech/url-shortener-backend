@@ -6,6 +6,7 @@ const crypto = require('crypto')
 const { Resend } = require('resend')
 const User = require('../models/User')
 const { OAuth2Client } = require('google-auth-library')
+const authMiddleware = require('../middleware/auth')
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -175,6 +176,83 @@ router.post('/login', async (req, res) => {
       }
     })
   } catch (err) {
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body
+  if (!email) return res.status(400).json({ error: 'Email is required' })
+
+  try {
+    const user = await User.findOne({ email })
+    // Always respond the same to prevent email enumeration
+    if (!user) return res.json({ message: 'If that email exists, a reset link has been sent.' })
+
+    const resetToken = crypto.randomBytes(32).toString('hex')
+    user.resetPasswordToken = resetToken
+    user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+    await user.save()
+
+    const resetUrl = `${(process.env.FRONTEND_URL || '').replace(/\/$/, '')}/reset-password/${resetToken}`
+    resend.emails.send({
+      from: 'cuts.ink <onboarding@resend.dev>',
+      to: email,
+      subject: 'Reset your password - cuts.ink',
+      html: `
+        <p>You requested a password reset.</p>
+        <p>Click the link below to set a new password. This link expires in 1 hour.</p>
+        <a href="${resetUrl}">${resetUrl}</a>
+        <p>If you did not request this, you can ignore this email.</p>
+      `
+    }).catch(err => console.error('Failed to send reset email:', err))
+
+    res.json({ message: 'If that email exists, a reset link has been sent.' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+router.post('/reset-password/:token', async (req, res) => {
+  const { password } = req.body
+  if (!password) return res.status(400).json({ error: 'Password is required' })
+
+  try {
+    const user = await User.findOne({
+      resetPasswordToken: req.params.token,
+      resetPasswordExpires: { $gt: new Date() }
+    })
+
+    if (!user) return res.status(400).json({ error: 'Reset link is invalid or has expired.' })
+
+    user.password = await bcrypt.hash(password, 10)
+    user.resetPasswordToken = undefined
+    user.resetPasswordExpires = undefined
+    await user.save()
+
+    res.json({ message: 'Password reset successfully. You can now log in.' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+router.post('/change-password', authMiddleware, async (req, res) => {
+  const { currentPassword, newPassword } = req.body
+  if (!currentPassword || !newPassword) return res.status(400).json({ error: 'All fields are required' })
+
+  try {
+    const user = await User.findById(req.user.userId)
+    const isMatch = await bcrypt.compare(currentPassword, user.password)
+    if (!isMatch) return res.status(400).json({ error: 'Current password is incorrect' })
+
+    user.password = await bcrypt.hash(newPassword, 10)
+    await user.save()
+
+    res.json({ message: 'Password changed successfully.' })
+  } catch (err) {
+    console.error(err)
     res.status(500).json({ error: 'Server error' })
   }
 })
