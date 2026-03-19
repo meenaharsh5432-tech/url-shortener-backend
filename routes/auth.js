@@ -54,7 +54,8 @@ router.post('/google', async (req, res) => {
         username,
         email,
         password: hashedPassword,
-        isVerified: true
+        isVerified: true,
+        isGoogleUser: true
       })
       await user.save()
     }
@@ -71,7 +72,8 @@ router.post('/google', async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
-        email: user.email
+        email: user.email,
+        isGoogleUser: user.isGoogleUser || false
       }
     })
 
@@ -240,17 +242,22 @@ router.post('/reset-password/:token', async (req, res) => {
 
 router.post('/change-password', authMiddleware, async (req, res) => {
   const { currentPassword, newPassword } = req.body
-  if (!currentPassword || !newPassword) return res.status(400).json({ error: 'All fields are required' })
+  if (!newPassword) return res.status(400).json({ error: 'New password is required' })
 
   try {
     const user = await User.findById(req.user.userId)
-    const isMatch = await bcrypt.compare(currentPassword, user.password)
-    if (!isMatch) return res.status(400).json({ error: 'Current password is incorrect' })
+
+    if (!user.isGoogleUser) {
+      if (!currentPassword) return res.status(400).json({ error: 'Current password is required' })
+      const isMatch = await bcrypt.compare(currentPassword, user.password)
+      if (!isMatch) return res.status(400).json({ error: 'Current password is incorrect' })
+    }
 
     user.password = await bcrypt.hash(newPassword, 10)
+    user.isGoogleUser = false // now has a real password
     await user.save()
 
-    res.json({ message: 'Password changed successfully.' })
+    res.json({ message: 'Password set successfully.' })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Server error' })
