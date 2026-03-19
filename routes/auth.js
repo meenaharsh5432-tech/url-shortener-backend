@@ -14,7 +14,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 async function sendWelcomeEmail(email, name) {
   const setPasswordUrl = `${(process.env.FRONTEND_URL || '').replace(/\/$/, '')}/dashboard`
   await resend.emails.send({
-    from: 'cuts.ink <onboarding@resend.dev>',
+    from: 'cuts.ink <noreply@cuts.ink>',
     to: email,
     subject: 'Welcome to cuts.ink!',
     html: `
@@ -31,7 +31,7 @@ async function sendVerificationEmail(email, token) {
   const backendUrl = (process.env.BACKEND_URL || '').replace(/\/$/, '')
   const verifyUrl = `${backendUrl}/auth/verify-email/${token}`
   await resend.emails.send({
-    from: 'cuts.ink <onboarding@resend.dev>',
+    from: 'cuts.ink <noreply@cuts.ink>',
     to: email,
     subject: 'Verify your email - cuts.ink',
     html: `
@@ -226,7 +226,7 @@ router.post('/forgot-password', async (req, res) => {
 
     const resetUrl = `${(process.env.FRONTEND_URL || '').replace(/\/$/, '')}/reset-password/${resetToken}`
     resend.emails.send({
-      from: 'cuts.ink <onboarding@resend.dev>',
+      from: 'cuts.ink <noreply@cuts.ink>',
       to: email,
       subject: 'Reset your password - cuts.ink',
       html: `
