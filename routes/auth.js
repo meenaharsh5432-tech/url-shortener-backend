@@ -106,7 +106,10 @@ router.post('/register', async (req, res) => {
     })
     await user.save()
 
-    await sendVerificationEmail(email, verificationToken)
+    // Send email in background — don't block the response
+    sendVerificationEmail(email, verificationToken).catch(err =>
+      console.error('Failed to send verification email:', err)
+    )
 
     res.json({ message: 'Account created! Please check your email to verify your account.' })
   } catch (err) {
