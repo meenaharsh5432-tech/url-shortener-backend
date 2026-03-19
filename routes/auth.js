@@ -3,23 +3,17 @@ const router = express.Router()
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const crypto = require('crypto')
-const nodemailer = require('nodemailer')
+const { Resend } = require('resend')
 const User = require('../models/User')
 const { OAuth2Client } = require('google-auth-library')
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-})
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 async function sendVerificationEmail(email, token) {
   const verifyUrl = `${process.env.BACKEND_URL}/auth/verify-email/${token}`
-  await transporter.sendMail({
-    from: `"cuts.ink" <${process.env.EMAIL_USER}>`,
+  await resend.emails.send({
+    from: 'cuts.ink <onboarding@resend.dev>',
     to: email,
     subject: 'Verify your email - cuts.ink',
     html: `
