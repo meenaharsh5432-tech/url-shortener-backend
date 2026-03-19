@@ -42,12 +42,15 @@ router.post('/google', async (req, res) => {
     let user = await User.findOne({ email })
 
     if (!user) {
-      // Create new user with random password
       const randomPassword = Math.random().toString(36).slice(-8)
       const hashedPassword = await bcrypt.hash(randomPassword, 10)
-      
+
+      let username = name
+      const existing = await User.findOne({ username })
+      if (existing) username = `${name}${Math.random().toString(36).slice(-4)}`
+
       user = new User({
-        username: name,
+        username,
         email,
         password: hashedPassword,
         isVerified: true
