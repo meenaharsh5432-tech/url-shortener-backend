@@ -11,6 +11,22 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+async function sendWelcomeEmail(email, name) {
+  const setPasswordUrl = `${(process.env.FRONTEND_URL || '').replace(/\/$/, '')}/dashboard`
+  await resend.emails.send({
+    from: 'cuts.ink <onboarding@resend.dev>',
+    to: email,
+    subject: 'Welcome to cuts.ink!',
+    html: `
+      <p>Hi ${name},</p>
+      <p>Welcome to <strong>cuts.ink</strong>! Your account has been created using Google Sign In.</p>
+      <p>You can start shortening links right away. If you'd also like to log in with email and password, visit your dashboard and click <strong>"Set Password"</strong>.</p>
+      <a href="${setPasswordUrl}">Go to Dashboard</a>
+      <p>Thanks for joining!</p>
+    `
+  })
+}
+
 async function sendVerificationEmail(email, token) {
   const backendUrl = (process.env.BACKEND_URL || '').replace(/\/$/, '')
   const verifyUrl = `${backendUrl}/auth/verify-email/${token}`
@@ -58,6 +74,8 @@ router.post('/google', async (req, res) => {
         isGoogleUser: true
       })
       await user.save()
+
+      sendWelcomeEmail(email, name).catch(err => console.error('Failed to send welcome email:', err))
     }
 
     // For existing Google users created before isGoogleUser field was added, set it now
