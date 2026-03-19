@@ -2,14 +2,14 @@
 const express = require('express')
 const router = express.Router()
 const { nanoid } = require('nanoid')
+const bcrypt = require('bcryptjs')
 const Url = require('../models/Url')
 const authMiddleware = require('../middleware/auth')
-const geoip=require('geoip-lite')
+const geoip = require('geoip-lite')
 
 
 router.post('/shorten', authMiddleware, async (req, res) => {
-  console.log('Full body:', req.body) 
-  const { originalUrl,customAlias,password } = req.body
+  const { originalUrl, customAlias, password } = req.body
 
   if (!originalUrl) {
     return res.status(400).json({ error: 'Please provide a URL' })
@@ -17,24 +17,20 @@ router.post('/shorten', authMiddleware, async (req, res) => {
 
   try {
     const shortCode = customAlias || nanoid(6)
-    const existing = await Url.findOne({shortCode})
+    const existing = await Url.findOne({ shortCode })
 
-    if(existing){
-      return res.status(400).json({error: 'This Alias is Already Taken!'})
+    if (existing) {
+      return res.status(400).json({ error: 'This Alias is Already Taken!' })
     }
-    
+
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + 30)
 
-    let hashedPassword=null
-    if(password){
-      console.log('Password to hash:', password)
-      const bcrypt=require('bcryptjs')
-      hashedPassword=await bcrypt.hash(password,10)
-      console.log('Hashed:', hashedPassword)  // ← ADD
+    let hashedPassword = null
+    if (password) {
+      hashedPassword = await bcrypt.hash(password, 10)
     }
-    console.log('Saving with password:', hashedPassword)
-    
+
 
     const url = new Url({
       userId: req.user.userId,    
@@ -58,7 +54,7 @@ router.post('/shorten', authMiddleware, async (req, res) => {
 
 router.get('/myurls', authMiddleware, async (req, res) => {
   try {
-    const urls = await Url.find({ userId: req.user.userId })
+    const urls = await Url.find({ userId: req.user.userId }).select('-password')
     res.json(urls)
   } catch (err) {
     res.status(500).json({ error: 'Server error' })
@@ -99,25 +95,26 @@ router.get('/:code', async (req, res) => {
     }
 
     // If password protected → redirect to password page
-if (url.password) {
-  return res.redirect(`https://cuts.ink/protected/${code}`)
-}
-    const userAgent=req.headers['user-agent']||''
-    const isMobile=/mobile|android|iphone|ipad/i.test(userAgent)
+    if (url.password) {
+      return res.redirect(`${process.env.FRONTEND_URL}/protected/${code}`)
+    }
 
-    const ip=req.headers['x-forwarded-for']||req.socket.remoteAddress
-    const geo=geoip.lookup(ip)
-    const country=geo?.country|| 'Unknown'
+    const userAgent = req.headers['user-agent'] || ''
+    const isMobile = /mobile|android|iphone|ipad/i.test(userAgent)
+
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress
+    const geo = geoip.lookup(ip)
+    const country = geo?.country || 'Unknown'
+
     url.clicks++
-    await url.save()
-    if(isMobile){
+    if (isMobile) {
       url.deviceStats.mobile++
-    }else{
+    } else {
       url.deviceStats.desktop++
     }
-    const currentCount=url.geoStats.get(country)||0
-    url.geoStats.set(country,currentCount+1)
-    
+    const currentCount = url.geoStats.get(country) || 0
+    url.geoStats.set(country, currentCount + 1)
+
     await url.save()
 
     res.redirect(url.originalUrl)
@@ -131,16 +128,12 @@ router.post('/verify/:code', async (req, res) => {
   const { code } = req.params
   const { password } = req.body
 
- console.log('User agent:', req.headers['user-agent'])
-  console.log('IP:', req.headers['x-forwarded-for'] || req.socket.remoteAddress)
-
   try {
     const url = await Url.findOne({ shortCode: code })
     if (!url) {
       return res.status(404).json({ error: 'URL not found' })
     }
 
-    const bcrypt = require('bcryptjs')
     const isMatch = await bcrypt.compare(password, url.password)
 
     if (!isMatch) {

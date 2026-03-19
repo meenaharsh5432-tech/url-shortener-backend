@@ -24,7 +24,6 @@ router.post('/google', async (req, res) => {
     if (!user) {
       // Create new user with random password
       const randomPassword = Math.random().toString(36).slice(-8)
-      const bcrypt = require('bcryptjs')
       const hashedPassword = await bcrypt.hash(randomPassword, 10)
       
       user = new User({
@@ -57,36 +56,27 @@ router.post('/google', async (req, res) => {
   }
 })
 router.post('/register', async (req, res) => {
- console.log('Register route hit!')
- 
   const { username, email, password } = req.body
- console.log('Body:', username, email, password) 
+
   if (!username || !email || !password) {
     return res.status(400).json({ error: 'All fields are required' })
   }
   try {
-    console.log('Trying to find user...')
     const existingUser = await User.findOne({ email })
-     console.log('Found user:', existingUser)
     if (existingUser) {
       return res.status(400).json({ error: 'Email already registered' })
     }
 
     const hashedPassword = await bcrypt.hash(password, 10)
-    console.log('Password hashed!')
     const user = new User({
       username,
       email,
       password: hashedPassword
     })
-    console.log('User object created!') 
     await user.save()
-    console.log('User saved!') 
 
     res.json({ message: '✅ Account created successfully!' })
   } catch (err) {
-    console.log('Full error:', err.message)
-    console.log('Error code:', err.code)
     res.status(500).json({ error: 'Server error' })
   }
 })
@@ -122,11 +112,9 @@ router.post('/login', async (req, res) => {
         email: user.email
       }
     })
-  }  catch (err) {
-  console.log('Full error:', err.message)
-  console.log('Error code:', err.code)
-  res.status(500).json({ error: err.message })
-}
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' })
+  }
 })
 
 module.exports = router
