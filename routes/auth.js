@@ -11,7 +11,8 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 async function sendVerificationEmail(email, token) {
-  const verifyUrl = `${process.env.BACKEND_URL}/auth/verify-email/${token}`
+  const backendUrl = (process.env.BACKEND_URL || '').replace(/\/$/, '')
+  const verifyUrl = `${backendUrl}/auth/verify-email/${token}`
   await resend.emails.send({
     from: 'cuts.ink <onboarding@resend.dev>',
     to: email,
