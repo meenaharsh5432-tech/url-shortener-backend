@@ -9,7 +9,7 @@ const geoip = require('geoip-lite')
 
 
 router.post('/shorten', authMiddleware, async (req, res) => {
-  const { originalUrl, customAlias, password } = req.body
+  const { originalUrl, customAlias, password, expiresAt: customExpiry, expiryDays } = req.body
 
   if (!originalUrl) {
     return res.status(400).json({ error: 'Please provide a URL' })
@@ -23,17 +23,36 @@ router.post('/shorten', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'This Alias is Already Taken!' })
     }
 
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 30)
+    let expiresAt
+    if (customExpiry) {
+      expiresAt = new Date(customExpiry)
+      if (isNaN(expiresAt.getTime())) {
+        return res.status(400).json({ error: 'Invalid expiry date' })
+      }
+      if (expiresAt <= new Date()) {
+        return res.status(400).json({ error: 'Expiry date must be in the future' })
+      }
+      const maxExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+      if (expiresAt > maxExpiry) {
+        return res.status(400).json({ error: 'Expiry date cannot be more than 365 days from now' })
+      }
+    } else if (expiryDays !== undefined) {
+      const days = Number(expiryDays)
+      if (!Number.isInteger(days) || days < 1 || days > 365) {
+        return res.status(400).json({ error: 'expiryDays must be an integer between 1 and 365' })
+      }
+      expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+    } else {
+      expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    }
 
     let hashedPassword = null
     if (password) {
       hashedPassword = await bcrypt.hash(password, 10)
     }
 
-
     const url = new Url({
-      userId: req.user.userId,    
+      userId: req.user.userId,
       originalUrl,
       shortCode,
       expiresAt,
@@ -44,7 +63,8 @@ router.post('/shorten', authMiddleware, async (req, res) => {
     res.json({
       originalUrl,
       shortUrl: `${process.env.BASE_URL}/${shortCode}`,
-      shortCode
+      shortCode,
+      expiresAt
     })
 
   } catch (err) {
