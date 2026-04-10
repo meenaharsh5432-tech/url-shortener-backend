@@ -1,15 +1,12 @@
-const express =require('express')
-const path = require('path')
+const express = require('express')
 const { default: mongoose } = require('mongoose')
-const cors=require('cors')
-const dotenv=require('dotenv')
-const rateLimit=require('express-rate-limit')
-
+const cors = require('cors')
+const dotenv = require('dotenv')
+const rateLimit = require('express-rate-limit')
 
 dotenv.config()
 
-const app=express()
-const publicDir = path.join(__dirname, 'public')
+const app = express()
 
 app.use(cors({
   origin: [
@@ -22,11 +19,6 @@ app.use(cors({
   credentials: true
 }))
 app.use(express.json())
-app.use(express.static(publicDir))
-
-app.get('/protected/:code', (req, res) => {
-  res.sendFile(path.join(publicDir, 'protected.html'))
-})
 
 const limiter=rateLimit({
   windowMs:60*60*1000,
@@ -39,13 +31,16 @@ app.use('/auth',require('./routes/auth'))
 
 app.use('/',require('./routes/url'))
 
+const PORT = process.env.PORT || 5000
+
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB Connected!')
-    app.listen(process.env.PORT, () => {
-      console.log(`🚀 Server running on port ${process.env.PORT}`)
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`)
     })
   })
   .catch((err) => {
-    console.log('❌ Connection failed:', err)
+    console.error('❌ Connection failed:', err)
+    process.exit(1)
   })

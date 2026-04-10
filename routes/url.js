@@ -16,11 +16,29 @@ router.post('/shorten', authMiddleware, async (req, res) => {
   }
 
   try {
-    const shortCode = customAlias || nanoid(6)
-    const existing = await Url.findOne({ shortCode })
+    new URL(originalUrl)
+  } catch {
+    return res.status(400).json({ error: 'Invalid URL format' })
+  }
 
-    if (existing) {
-      return res.status(400).json({ error: 'This Alias is Already Taken!' })
+  try {
+    let shortCode
+    if (customAlias) {
+      const existing = await Url.findOne({ shortCode: customAlias })
+      if (existing) {
+        return res.status(400).json({ error: 'This Alias is Already Taken!' })
+      }
+      shortCode = customAlias
+    } else {
+      let attempts = 0
+      do {
+        shortCode = nanoid(6)
+        attempts++
+        if (attempts > 5) {
+          return res.status(500).json({ error: 'Could not generate a unique code, try again' })
+        }
+      } while (await Url.findOne({ shortCode }))
+
     }
 
     const expiresAt = new Date()
@@ -82,6 +100,9 @@ router.delete('/:id', authMiddleware, async(req,res)=>{
     res.json({message: 'URL Deleted Successfully'})
 
   }catch(err){
+    if(err.name === 'CastError') {
+      return res.status(400).json({error: 'Invalid URL id'})
+    }
     res.status(500).json({error: 'Server Error'})
   }
 })
@@ -139,6 +160,14 @@ router.post('/verify/:code', async (req, res) => {
     const url = await Url.findOne({ shortCode: code })
     if (!url) {
       return res.status(404).json({ error: 'URL not found' })
+    }
+
+    if (new Date() > url.expiresAt) {
+      return res.status(410).json({ error: 'URL has expired' })
+    }
+
+    if (!url.password) {
+      return res.status(400).json({ error: 'This URL is not password protected' })
     }
 
     const isMatch = await bcrypt.compare(password, url.password)

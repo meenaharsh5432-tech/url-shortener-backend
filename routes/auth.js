@@ -2,7 +2,9 @@ const express = require('express')
 const router = express.Router()
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const crypto = require('crypto')
 const User = require('../models/User')
+const { sendVerificationEmail } = require('../utils/email')
 const { OAuth2Client } = require('google-auth-library')
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
@@ -24,16 +26,15 @@ router.post('/google', async (req, res) => {
     if (!user) {
       // Create new user with random password
       const randomPassword = Math.random().toString(36).slice(-8)
-      const bcrypt = require('bcryptjs')
       const hashedPassword = await bcrypt.hash(randomPassword, 10)
-      
+
       user = new User({
         username: name,
         email,
-        password: hashedPassword
+        password: hashedPassword,
+        isGoogleUser: true
       })
       await user.save()
-      
     }
 
     // Create JWT token — works for both existing and new users!
@@ -58,36 +59,34 @@ router.post('/google', async (req, res) => {
   }
 })
 router.post('/register', async (req, res) => {
- console.log('Register route hit!')
- 
   const { username, email, password } = req.body
- console.log('Body:', username, email, password) 
+
   if (!username || !email || !password) {
     return res.status(400).json({ error: 'All fields are required' })
   }
   try {
-    console.log('Trying to find user...')
     const existingUser = await User.findOne({ email })
-     console.log('Found user:', existingUser)
     if (existingUser) {
       return res.status(400).json({ error: 'Email already registered' })
     }
 
     const hashedPassword = await bcrypt.hash(password, 10)
-    console.log('Password hashed!')
+    const verificationToken = crypto.randomBytes(32).toString('hex')
+    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000)
+
     const user = new User({
       username,
       email,
-      password: hashedPassword
+      password: hashedPassword,
+      verificationToken,
+      verificationTokenExpires
     })
-    console.log('User object created!') 
     await user.save()
-    console.log('User saved!') 
 
-    res.json({ message: '✅ Account created successfully!' })
+    await sendVerificationEmail(email, username, verificationToken)
+
+    res.json({ message: '✅ Account created! Please check your email to verify your account.' })
   } catch (err) {
-    console.log('Full error:', err.message)
-    console.log('Error code:', err.code)
     res.status(500).json({ error: 'Server error' })
   }
 })
@@ -123,11 +122,69 @@ router.post('/login', async (req, res) => {
         email: user.email
       }
     })
-  }  catch (err) {
-  console.log('Full error:', err.message)
-  console.log('Error code:', err.code)
-  res.status(500).json({ error: err.message })
-}
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+router.get('/verify-email', async (req, res) => {
+  const { token } = req.query
+
+  if (!token) {
+    return res.status(400).json({ error: 'Verification token is required' })
+  }
+
+  try {
+    const user = await User.findOne({
+      verificationToken: token,
+      verificationTokenExpires: { $gt: new Date() }
+    })
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired verification link' })
+    }
+
+    user.isVerified = true
+    user.verificationToken = undefined
+    user.verificationTokenExpires = undefined
+    await user.save()
+
+    res.json({ message: '✅ Email verified successfully! You can now log in.' })
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+router.post('/resend-verification', async (req, res) => {
+  const { email } = req.body
+
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' })
+  }
+
+  try {
+    const user = await User.findOne({ email })
+
+    if (!user) {
+      // Return success anyway to avoid email enumeration
+      return res.json({ message: 'If that email exists, a verification link has been sent.' })
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ error: 'This account is already verified' })
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString('hex')
+    user.verificationToken = verificationToken
+    user.verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    await user.save()
+
+    await sendVerificationEmail(email, user.username, verificationToken)
+
+    res.json({ message: 'Verification email sent! Please check your inbox.' })
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' })
+  }
 })
 
 module.exports = router
