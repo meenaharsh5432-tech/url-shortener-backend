@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Protected Link | Cuts.ink</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body data-page="protected">
+  <div class="protected-shell">
+    <div class="orb orb-one"></div>
+    <div class="orb orb-two"></div>
+
+    <section class="protected-card card">
+      <div class="eyebrow">Protected destination</div>
+      <h1>This link needs a password</h1>
+      <p id="protectedDescription">
+        Enter the password for this short link to continue to the original destination.
+      </p>
+
+      <form id="protectedForm" class="protected-form">
+        <label>
+          <span>Password</span>
+          <input id="protectedPassword" type="password" placeholder="Enter password" required />
+        </label>
+        <button class="primary-button full-width" type="submit">Unlock link</button>
+      </form>
+
+      <a class="text-link" href="/">Back to home</a>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

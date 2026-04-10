@@ -1,4 +1,5 @@
 const express =require('express')
+const path = require('path')
 const { default: mongoose } = require('mongoose')
 const cors=require('cors')
 const dotenv=require('dotenv')
@@ -8,6 +9,7 @@ const rateLimit=require('express-rate-limit')
 dotenv.config()
 
 const app=express()
+const publicDir = path.join(__dirname, 'public')
 
 app.use(cors({
   origin: [
@@ -20,6 +22,11 @@ app.use(cors({
   credentials: true
 }))
 app.use(express.json())
+app.use(express.static(publicDir))
+
+app.get('/protected/:code', (req, res) => {
+  res.sendFile(path.join(publicDir, 'protected.html'))
+})
 
 const limiter=rateLimit({
   windowMs:60*60*1000,

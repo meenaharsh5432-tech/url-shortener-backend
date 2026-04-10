@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cuts.ink | Smart Link Shortener</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body data-page="home">
+  <div class="page-shell">
+    <div class="orb orb-one"></div>
+    <div class="orb orb-two"></div>
+
+    <header class="topbar">
+      <a class="brand" href="/">
+        <span class="brand-mark">C</span>
+        <span class="brand-copy">
+          <strong>Cuts.ink</strong>
+          <small>Short links with a stronger presence</small>
+        </span>
+      </a>
+
+      <button class="ghost-button" id="authToggle" type="button">Sign in</button>
+    </header>
+
+    <main class="layout">
+      <section class="hero card">
+        <div class="eyebrow">Modern URL management</div>
+        <h1>Make every link feel sharp, trackable, and ready to share.</h1>
+        <p class="hero-copy">
+          A refined dashboard for creating branded short links, protecting sensitive redirects,
+          and keeping an eye on clicks from one calm workspace.
+        </p>
+
+        <div class="hero-actions">
+          <a class="primary-button" href="#shortenerPanel">Create a short link</a>
+          <button class="secondary-button" id="demoFill" type="button">Try demo data</button>
+        </div>
+
+        <div class="hero-stats">
+          <article>
+            <span>30 days</span>
+            <strong>Auto expiry</strong>
+          </article>
+          <article>
+            <span>Private</span>
+            <strong>Password protected links</strong>
+          </article>
+          <article>
+            <span>Insight</span>
+            <strong>Device and region tracking</strong>
+          </article>
+        </div>
+      </section>
+
+      <aside class="auth-panel card" id="authPanel">
+        <div class="panel-heading">
+          <div>
+            <div class="eyebrow">Access workspace</div>
+            <h2>Welcome back</h2>
+          </div>
+          <p>Register or sign in to manage your links and view analytics.</p>
+        </div>
+
+        <div class="tab-row">
+          <button class="tab-button active" type="button" data-tab-target="login">Login</button>
+          <button class="tab-button" type="button" data-tab-target="register">Register</button>
+        </div>
+
+        <form class="auth-form active" id="loginForm" data-tab-panel="login">
+          <label>
+            <span>Email</span>
+            <input name="email" type="email" placeholder="you@example.com" required />
+          </label>
+          <label>
+            <span>Password</span>
+            <input name="password" type="password" placeholder="Enter your password" required />
+          </label>
+          <button class="primary-button full-width" type="submit">Login</button>
+        </form>
+
+        <form class="auth-form" id="registerForm" data-tab-panel="register">
+          <label>
+            <span>Username</span>
+            <input name="username" type="text" placeholder="Pick a display name" required />
+          </label>
+          <label>
+            <span>Email</span>
+            <input name="email" type="email" placeholder="you@example.com" required />
+          </label>
+          <label>
+            <span>Password</span>
+            <input name="password" type="password" placeholder="Create a password" required />
+          </label>
+          <button class="primary-button full-width" type="submit">Create account</button>
+        </form>
+
+        <div class="session-card" id="sessionCard" hidden>
+          <span class="session-label">Signed in as</span>
+          <strong id="sessionUser">Guest</strong>
+          <button class="ghost-button full-width" id="logoutButton" type="button">Logout</button>
+        </div>
+      </aside>
+
+      <section class="shortener card" id="shortenerPanel">
+        <div class="panel-heading">
+          <div>
+            <div class="eyebrow">Quick create</div>
+            <h2>Build a link people trust</h2>
+          </div>
+          <p>Signed-in users can create custom aliases, add passwords, and review performance later.</p>
+        </div>
+
+        <form id="shortenForm" class="shorten-form">
+          <label class="wide">
+            <span>Original URL</span>
+            <input name="originalUrl" type="url" placeholder="https://your-long-link.com" required />
+          </label>
+          <label>
+            <span>Custom alias</span>
+            <input name="customAlias" type="text" placeholder="launch-kit" />
+          </label>
+          <label>
+            <span>Link password</span>
+            <input name="password" type="password" placeholder="Optional" />
+          </label>
+          <button class="primary-button" type="submit">Shorten URL</button>
+        </form>
+
+        <div class="result-panel" id="resultPanel" hidden>
+          <span class="result-label">Fresh short link</span>
+          <div class="result-row">
+            <a id="shortUrlOutput" href="#" target="_blank" rel="noreferrer">https://cuts.ink/example</a>
+            <button class="secondary-button" id="copyButton" type="button">Copy</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="dashboard card">
+        <div class="panel-heading">
+          <div>
+            <div class="eyebrow">Dashboard</div>
+            <h2>Your recent links</h2>
+          </div>
+          <p>The table below fills once you log in and fetch your saved URLs.</p>
+        </div>
+
+        <div class="dashboard-metrics" id="metrics">
+          <article>
+            <span>Total links</span>
+            <strong id="metricLinks">0</strong>
+          </article>
+          <article>
+            <span>Total clicks</span>
+            <strong id="metricClicks">0</strong>
+          </article>
+          <article>
+            <span>Protected links</span>
+            <strong id="metricProtected">0</strong>
+          </article>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Alias</th>
+                <th>Destination</th>
+                <th>Clicks</th>
+                <th>Expires</th>
+              </tr>
+            </thead>
+            <tbody id="urlsTableBody">
+              <tr>
+                <td colspan="4" class="empty-state">Log in to see your links here.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
