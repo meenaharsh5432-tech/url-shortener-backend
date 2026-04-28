@@ -25,7 +25,7 @@ router.post('/google', async (req, res) => {
 
     if (!user) {
       // Create new user with random password
-      const randomPassword = Math.random().toString(36).slice(-8)
+      const randomPassword = crypto.randomBytes(16).toString('hex')
       const hashedPassword = await bcrypt.hash(randomPassword, 10)
 
       user = new User({
@@ -103,6 +103,10 @@ router.post('/login', async (req, res) => {
     if (!user) {
       return res.status(400).json({ error: 'Invalid email or password' })
     }
+    if (!user.isVerified) {
+      return res.status(403).json({ error: 'Please verify your email before logging in' })
+    }
+
     const isMatch = await bcrypt.compare(password, user.password)
 
     if (!isMatch) {

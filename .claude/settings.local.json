@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(npm install:*)",
-      "Bash(ls /c/Users/harsh/OneDrive/Desktop/URL/*.js /c/Users/harsh/OneDrive/Desktop/URL/*.json)"
-    ]
-  }
-}

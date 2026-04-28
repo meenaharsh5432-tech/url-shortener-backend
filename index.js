@@ -3,11 +3,15 @@ const { default: mongoose } = require('mongoose')
 const cors = require('cors')
 const dotenv = require('dotenv')
 const rateLimit = require('express-rate-limit')
+const helmet = require('helmet')
 
 dotenv.config()
 
 const app = express()
 
+app.set('trust proxy', 1)
+
+app.use(helmet())
 app.use(cors({
   origin: [
     'http://localhost:3000',
@@ -20,12 +24,19 @@ app.use(cors({
 }))
 app.use(express.json())
 
-const limiter=rateLimit({
-  windowMs:60*60*1000,
-  max:100,
-  message:{error:'Too many requests, please try again after an hour'}
+const limiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 100,
+  message: { error: 'Too many requests, please try again after an hour' }
 })
-app.use('/shorten',limiter)
+app.use('/shorten', limiter)
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many login attempts, please try again in 15 minutes' }
+})
+app.use('/auth/login', authLimiter)
 
 app.use('/auth',require('./routes/auth'))
 

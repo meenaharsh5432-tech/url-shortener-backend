@@ -16,7 +16,10 @@ router.post('/shorten', authMiddleware, async (req, res) => {
   }
 
   try {
-    new URL(originalUrl)
+    const parsed = new URL(originalUrl)
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return res.status(400).json({ error: 'Only http and https URLs are allowed' })
+    }
   } catch {
     return res.status(400).json({ error: 'Invalid URL format' })
   }
@@ -24,6 +27,9 @@ router.post('/shorten', authMiddleware, async (req, res) => {
   try {
     let shortCode
     if (customAlias) {
+      if (!/^[a-zA-Z0-9_-]{3,30}$/.test(customAlias)) {
+        return res.status(400).json({ error: 'Alias must be 3–30 characters and contain only letters, numbers, hyphens, or underscores' })
+      }
       const existing = await Url.findOne({ shortCode: customAlias })
       if (existing) {
         return res.status(400).json({ error: 'This Alias is Already Taken!' })
@@ -129,8 +135,7 @@ router.get('/:code', async (req, res) => {
     const userAgent = req.headers['user-agent'] || ''
     const isMobile = /mobile|android|iphone|ipad/i.test(userAgent)
 
-    const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress
-    const ip = rawIp.split(',')[0].trim().replace(/^::ffff:/, '')
+    const ip = (req.ip || '').replace(/^::ffff:/, '')
     const geo = geoip.lookup(ip)
     const country = geo?.country || 'Unknown'
 
@@ -181,8 +186,7 @@ router.post('/verify/:code', async (req, res) => {
     const isMobile = /mobile|android|iphone|ipad/i.test(userAgent)
 
     // Detect country
-    const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress
-    const ip = rawIp.split(',')[0].trim().replace(/^::ffff:/, '')
+    const ip = (req.ip || '').replace(/^::ffff:/, '')
     const geo = geoip.lookup(ip)
     const country = geo?.country || 'Unknown'
 
